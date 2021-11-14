@@ -72,17 +72,25 @@ class ChatIncomingThread(Thread):
         while not self.conn._closed:
             data = self.conn.recv(1024)
             data = data.decode().rstrip()
-            if data == "quit":
-                Clients.remove(self.conn) #remove a client from a clients list, if a client is disconnected
-                self.Outgoing_thread.OutKillThread() 
-                self.killThread()
-                try:
-                    self.conn.close()
-                except:                #continue
-                    pass 
-            else:
-                self.conn.sendall("che@server:~$ ".encode())
-                self.sendMessage(data)  
+
+            #Firewall_1:checks if the sender's length of data is not exceeded by limited size
+            if len(data) > 1024:
+
+                print("Attempting to DOS by {}".format(self.ip))
+                self.conn.sendall("Warning: !!!Don't abuse the server!!!\nche@server:~$".encode())
+
+            else:    
+                if data == "quit":
+                    Clients.remove(self.conn) #remove a client from a clients list, if a client is disconnected
+                    self.Outgoing_thread.OutKillThread() 
+                    self.killThread()
+                    try:
+                        self.conn.close()
+                    except:                #continue
+                        pass 
+                else:
+                    self.conn.sendall("che@server:~$ ".encode())
+                    self.sendMessage(data)  
                 
                             
 Clients = []   #List for new client connections
@@ -93,6 +101,15 @@ s.listen()
 print("Server Listening ...")
 while True:
     conn,addr = s.accept()
+
+    #Firewall_2: To check the client is using VPN or Not 
+    ip = str(addr[0])
+    if(ip.startswith('1')):
+        ip = ip.split(".")
+        if(len(ip) >= 4):
+            conn.sendall("Info: Don't use VPN service!\n".encode())
+            break
+    
     Clients.append(conn)  #Append the client to clients list 
     t1 = ChatIncomingThread(conn,addr) #Starting theard for new connection
     t1.start()
